@@ -12,6 +12,7 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -46,6 +47,7 @@ public class MapsActivity extends FragmentActivity
     public PostInfo[] coordslist;
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public int[] ratings;
+    private Circle viewableRadius;
 
     // Uploader.
     private ServerCall uploader;
@@ -71,6 +73,11 @@ public class MapsActivity extends FragmentActivity
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
+        // Hide the splash screen and progress bar
+        RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
+        splashScreen.setVisibility(View.INVISIBLE);
+
     }
 
 
@@ -169,6 +176,7 @@ public class MapsActivity extends FragmentActivity
         public void onLocationChanged(Location location) {
             lastLocation = location;
             Log.i(LOG_TAG, "Location Updated");
+            drawViewableRadius();
         }
 
         @Override
@@ -182,7 +190,9 @@ public class MapsActivity extends FragmentActivity
     };
 
     private void drawViewableRadius(){
-        Circle cirlce = mMap.addCircle(new CircleOptions()
+        if(viewableRadius!=null)
+            viewableRadius.remove();
+        viewableRadius = mMap.addCircle(new CircleOptions()
                 .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
                 .radius(50)
                 .strokeColor(Color.parseColor("#FFA000"))
@@ -219,6 +229,9 @@ public class MapsActivity extends FragmentActivity
         Intent intent = new Intent(MapsActivity.this, PostActivity.class);
         Context context = getApplicationContext();
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        double[] lastLocationArray = {lastLocation.getLatitude(),lastLocation.getLongitude()};
+        Log.i("LLA",lastLocationArray[0]+"");
+        intent.putExtra("lastLocationArray", lastLocationArray);
         context.startActivity(intent);
     }
 
