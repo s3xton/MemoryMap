@@ -82,12 +82,19 @@ public class MapsActivity extends FragmentActivity
         }
     }
 
+
+
     @Override
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
         if(lastLocation != null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
+        // Then start to request location updates, directing them to locationListener.
+        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+
     }
 
     /**
@@ -126,30 +133,7 @@ public class MapsActivity extends FragmentActivity
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
 
-        LocationListener locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                lastLocation = location;
-                Log.i(LOG_TAG, "Location Updated");
-            }
-
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {}
-
-            @Override
-            public void onProviderEnabled(String provider) {}
-
-            @Override
-            public void onProviderDisabled(String provider) {}
-        };
         mMap.setOnMapClickListener(this);
-
-        Circle cirlce = mMap.addCircle(new CircleOptions()
-                .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
-                .radius(50)
-                .strokeColor(Color.parseColor("#FFA000"))
-                .fillColor(Color.argb(30, 255, 222, 0))
-                .strokeWidth(3));
 
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             // Takes a list of coords and draws a circle at each point with a radius
@@ -161,6 +145,7 @@ public class MapsActivity extends FragmentActivity
                 String[] colors = {"#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4", "#039BE5", "#0288D1"};
                 Log.i("CAMERA", "camera changed");
                 mMap.clear();
+                drawViewableRadius();
                 LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
                 for (int i = 0; i < coords.length; i++) {
                     if (bounds.contains(new LatLng(coords[i][0], coords[i][1]))) {
@@ -176,6 +161,32 @@ public class MapsActivity extends FragmentActivity
                 }
             }
         });
+    }
+
+    LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            lastLocation = location;
+            Log.i(LOG_TAG, "Location Updated");
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+        @Override
+        public void onProviderEnabled(String provider) {}
+
+        @Override
+        public void onProviderDisabled(String provider) {}
+    };
+
+    private void drawViewableRadius(){
+        Circle cirlce = mMap.addCircle(new CircleOptions()
+                .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
+                .radius(50)
+                .strokeColor(Color.parseColor("#FFA000"))
+                .fillColor(Color.argb(30, 255, 222, 0))
+                .strokeWidth(3));
     }
 
     public void postMessage(View v){
