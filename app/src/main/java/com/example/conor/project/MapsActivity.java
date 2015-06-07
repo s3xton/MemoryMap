@@ -27,8 +27,10 @@ import com.google.gson.Gson;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MapsActivity extends FragmentActivity
@@ -149,8 +151,10 @@ public class MapsActivity extends FragmentActivity
     public void updateMap(){
         LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
         if(circles != null) {
+            // Iterate over all our cached circles
             for (Map.Entry<String, PostInfo> entry : circles.entrySet()) {
                 PostInfo p = entry.getValue();
+                // Draw circle if it is in bounds and not already drawn
                 if (bounds.contains(new LatLng(p.lat, p.lng))) {
                     if(p.circle == null) {
                         String color = colors[0];//colors[0 + (int) (Math.random() * 5)];
@@ -162,10 +166,9 @@ public class MapsActivity extends FragmentActivity
                                 .strokeWidth(3));
                         p.circle = circle;
                     }
-                } else {
+                } else { // Remove circles that are not shown
                     if(p.circle != null)
                         p.circle.remove();
-                    circles.remove(entry.getKey());
                 }
             }
         }
@@ -280,7 +283,6 @@ public class MapsActivity extends FragmentActivity
                 if(ml != null)
                     for (int i = 0; i < ml.posts.length; i++) {
                         circles.put(ml.posts[i].lat + "," + ml.posts[i].lng, ml.posts[i]);
-                        Log.i("", "adding" + ml.posts[i].lat + "," + ml.posts[i].lng +":" +ml.posts[i].data);
                     }
                 updateMap();
 
