@@ -76,9 +76,7 @@ public class MapsActivity extends FragmentActivity
             e.printStackTrace();
         }
 
-        // Hide the splash screen and progress bar
-        RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
-        splashScreen.setVisibility(View.INVISIBLE);
+
 
     }
 
@@ -285,6 +283,10 @@ public class MapsActivity extends FragmentActivity
                         circles.put(ml.posts[i].lat + "," + ml.posts[i].lng, ml.posts[i]);
                     }
                 updateMap();
+
+                // Hide the splash screen and progress bar
+                RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
+                splashScreen.setVisibility(View.INVISIBLE);
 
                 // Stores in the settings the last messages received.
                 //SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
