@@ -22,8 +22,24 @@
             android:name="com.google.android.gms.maps.SupportMapFragment"
             tools:layout="@layout/activity_maps" />
 
+        <TextView
+            android:id="@+id/dateTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/sliderLayout"
+            android:text=""
+            android:textColor="#ff000000"/>
+
         <LinearLayout
-            android:id="@+id/mLlayoutBottomButtons"
+            android:id="@+id/sliderLayout"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/layoutBottomButtons"
+            android:orientation="vertical" >
+            </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutBottomButtons"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
@@ -34,7 +50,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:layout_alignParentBottom="true"
                 android:text="Post Message"
+                android:background="#FFC107"
                 android:onClick="postMessage"/>
 
 

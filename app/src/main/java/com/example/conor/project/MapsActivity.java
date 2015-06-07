@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.text.Layout;
 import android.view.View;
 import android.util.Log;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -21,6 +23,10 @@ import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MapsActivity extends FragmentActivity
     implements GoogleMap.OnMapClickListener{
@@ -33,7 +39,6 @@ public class MapsActivity extends FragmentActivity
     private Criteria criteria;
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
-    private View topLevelLayout;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,6 +56,12 @@ public class MapsActivity extends FragmentActivity
         int[] ratings = {1};
         double[][] coords = {a};
         drawCircles(coords, ratings);
+
+        try {
+            addRangeSlider();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -147,5 +158,27 @@ public class MapsActivity extends FragmentActivity
     @Override
     public void onMapClick(LatLng latLng) {
         Log.i("POSITION", latLng.toString());
+    }
+
+    private void addRangeSlider() throws ParseException {
+        // create RangeSeekBar as Date range between 1950-12-01 and now
+        Date minDate = new SimpleDateFormat("yyyy-MM-dd").parse("2015-05-06");
+        Date maxDate = new Date();
+        Context context = getApplicationContext();
+        RangeSeekBar<Long> seekBar = new RangeSeekBar<Long>(minDate.getTime(), maxDate.getTime(), context);
+        seekBar.setOnRangeSeekBarChangeListener(new RangeSeekBar.OnRangeSeekBarChangeListener<Long>() {
+            @Override
+            public void onRangeSeekBarValuesChanged(RangeSeekBar<?> bar, Long minValue, Long maxValue) {
+                // handle changed range values
+                Log.i("RANGESLIDER", "User selected new date range: MIN=" + new Date(minValue) + ", MAX=" + new Date(maxValue));
+                TextView textView = (TextView) findViewById(R.id.dateTextView);
+                textView.setText(""+new Date(minValue) + "\n"+ new Date(maxValue));
+            }
+        });
+
+        // add RangeSeekBar to pre-defined layout
+
+        ViewGroup layout = (ViewGroup) findViewById(R.id.sliderLayout);
+        layout.addView(seekBar);
     }
 }

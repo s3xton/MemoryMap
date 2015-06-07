@@ -25,7 +25,7 @@
     <Button
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:text="post"
+        android:text="Post"
         android:id="@+id/post_button"
         android:background="#ffffc107"
         android:textColor="#ff3f0000"
