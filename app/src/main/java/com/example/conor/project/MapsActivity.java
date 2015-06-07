@@ -7,15 +7,13 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.text.Layout;
-import android.view.View;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -24,12 +22,13 @@ import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Random;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MapsActivity extends FragmentActivity
     implements GoogleMap.OnMapClickListener{
@@ -37,13 +36,22 @@ public class MapsActivity extends FragmentActivity
     private static final String LOG_TAG = "MemoryMap";
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
+    private static final String SERVER_URL_PREFIX = "http://zach.ie/memorymap/query.php";
+    private String[] colors = {"#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4", "#039BE5", "#0288D1"};
     private LocationManager locationManager;
     private Location lastLocation;
     private Criteria criteria;
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
-    public double[][] coords;
+    public PostInfo[] coordslist;
+    public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public int[] ratings;
+
+    // Uploader.
+    private ServerCall uploader;
+
+    // To remember the posts we received.
+    public static final String PREF_POSTS = "pref_posts";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,24 +64,7 @@ public class MapsActivity extends FragmentActivity
         if(lastLocation != null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
 
-
-        // Generate some dummy coords and ratings
-        double[] a = {37.001816, -122.057976};
-        coords = new double[100][2];
-        Random r = new Random();
-        double rangeMinLat = 37.002;
-        double rangeMaxLat = 37.004;
-        double rangeMinLong = -122.06;
-        double rangeMaxLong = -122.05;
-        for(int i =0; i<coords.length; i++){
-            coords[i][0] = rangeMinLat + (rangeMaxLat - rangeMinLat) * r.nextDouble();
-            coords[i][1] = rangeMinLong + (rangeMaxLong - rangeMinLong) * r.nextDouble();
-        }
-        ratings = new int[100];
-        for(int j = 0; j<ratings.length;j++){
-            ratings[j] = 1;
-        }
-
+        drawViewableRadius();
         // Add range slider to layout
         try {
             addRangeSlider();
@@ -125,6 +116,8 @@ public class MapsActivity extends FragmentActivity
         }
     }
 
+
+
     /**
      * This is where we can add markers or lines, add listeners or move the camera.
      * <p/>
@@ -136,31 +129,39 @@ public class MapsActivity extends FragmentActivity
         mMap.setOnMapClickListener(this);
 
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
-            // Takes a list of coords and draws a circle at each point with a radius
-            // relative to the rating of the post at that coord. Ratings passed as an equal-length list.
-            // Randomly chooses a color for the circles from the color list.
-
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
-                String[] colors = {"#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4", "#039BE5", "#0288D1"};
                 Log.i("CAMERA", "camera changed");
-                mMap.clear();
-                drawViewableRadius();
                 LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-                for (int i = 0; i < coords.length; i++) {
-                    if (bounds.contains(new LatLng(coords[i][0], coords[i][1]))) {
+                getMessages(bounds.southwest.latitude, bounds.northeast.latitude,
+                        bounds.southwest.longitude, bounds.northeast.longitude);
+            }
+        });
+    }
+
+    public void updateMap(){
+        LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+        if(circles != null) {
+            for (Map.Entry<String, PostInfo> entry : circles.entrySet()) {
+                PostInfo p = entry.getValue();
+                if (bounds.contains(new LatLng(p.lat, p.lng))) {
+                    if(p.circle == null) {
                         String color = colors[0];//colors[0 + (int) (Math.random() * 5)];
-                        Circle cirlce = mMap.addCircle(new CircleOptions()
-                                .center(new LatLng(coords[i][0], coords[i][1]))
-                                .radius(ratings[i])
+                        Circle circle = mMap.addCircle(new CircleOptions()
+                                .center(new LatLng(p.lat, p.lng))
+                                .radius(1)
                                 .strokeColor(Color.parseColor(color))
                                 .fillColor(Color.parseColor(color))
                                 .strokeWidth(3));
-
+                        p.circle = circle;
                     }
+                } else {
+                    if(p.circle != null)
+                        p.circle.remove();
+                    circles.remove(entry.getKey());
                 }
             }
-        });
+        }
     }
 
     LocationListener locationListener = new LocationListener() {
@@ -187,6 +188,31 @@ public class MapsActivity extends FragmentActivity
                 .strokeColor(Color.parseColor("#FFA000"))
                 .fillColor(Color.argb(30, 255, 222, 0))
                 .strokeWidth(3));
+    }
+
+    public void getMessages(double latmin, double latmax, double lngmin, double lngmax){
+        // Start the call.
+        PostMessageSpec myCallSpec = new PostMessageSpec();
+        myCallSpec.url = SERVER_URL_PREFIX;
+        myCallSpec.context = this;
+
+        // Let's add the parameters.
+        HashMap<String, String> m = new HashMap<String, String>();
+        m.put("q", "get");
+        m.put("type", "range");
+        m.put("latmin", Double.toString(latmin));
+        m.put("latmax", Double.toString(latmax));
+        m.put("lngmin", Double.toString(lngmin));
+        m.put("lngmax", Double.toString(lngmax));
+        myCallSpec.setParams(m);
+
+        // Actual server call.
+        if (uploader != null) {
+            // There was already an upload in progress.
+            uploader.cancel(true);
+        }
+        uploader = new ServerCall();
+        uploader.execute(myCallSpec);
     }
 
     public void postMessage(View v){
@@ -222,4 +248,38 @@ public class MapsActivity extends FragmentActivity
         ViewGroup layout = (ViewGroup) findViewById(R.id.sliderLayout);
         layout.addView(seekBar);
     }
+
+    /**
+     * This class is used to do the HTTP call, and it specifies how to use the result.
+     */
+    class PostMessageSpec extends ServerCallSpec {
+        @Override
+        public void useResult(Context context, String result) {
+            if (result == null) {
+                // Do something here, e.g. tell the user that the server cannot be contacted.
+                Log.i(LOG_TAG, "The server call failed");
+            } else {
+                // Translates the string result, decoding the Json.
+                Log.i(LOG_TAG, "Received string: " + result);
+
+                Gson gson = new Gson();
+                PostList ml = gson.fromJson(result, PostList.class);
+                if(ml != null)
+                    for (int i = 0; i < ml.posts.length; i++) {
+                        circles.put(ml.posts[i].lat + "," + ml.posts[i].lng, ml.posts[i]);
+                        Log.i("", "adding" + ml.posts[i].lat + "," + ml.posts[i].lng +":" +ml.posts[i].data);
+                    }
+                updateMap();
+
+                // Stores in the settings the last messages received.
+                //SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
+                //SharedPreferences.Editor editor = settings.edit();
+                //editor.putString(PREF_POSTS, circles);
+                //editor.commit();
+            }
+        }
+    }
 }
+
+
+
