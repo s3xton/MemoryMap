@@ -46,6 +46,7 @@ public class MapsActivity extends FragmentActivity
     private Criteria criteria;
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
+    private static long lastchange;
     public PostInfo[] coordslist;
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public int[] ratings;
@@ -140,10 +141,12 @@ public class MapsActivity extends FragmentActivity
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
-                Log.i("CAMERA", "camera changed");
-                LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-                getMessages(bounds.southwest.latitude, bounds.northeast.latitude,
-                        bounds.southwest.longitude, bounds.northeast.longitude);
+                if (System.currentTimeMillis() - lastchange > 1000){
+                    LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+                    getMessages(bounds.southwest.latitude, bounds.northeast.latitude,
+                            bounds.southwest.longitude, bounds.northeast.longitude);
+                    lastchange = System.currentTimeMillis();
+                }
             }
         });
     }
@@ -167,8 +170,12 @@ public class MapsActivity extends FragmentActivity
                         p.circle = circle;
                     }
                 } else { // Remove circles that are not shown
-                    if(p.circle != null)
+                    if(p.circle != null) {
+                        Log.i("", "hiding circle" + entry.getKey());
+
                         p.circle.remove();
+                        p.circle = null;
+                    }
                 }
             }
         }
@@ -204,6 +211,7 @@ public class MapsActivity extends FragmentActivity
     }
 
     public void getMessages(double latmin, double latmax, double lngmin, double lngmax){
+
         // Start the call.
         PostMessageSpec myCallSpec = new PostMessageSpec();
         myCallSpec.url = SERVER_URL_PREFIX;
@@ -255,7 +263,7 @@ public class MapsActivity extends FragmentActivity
                 // handle changed range values
                 Log.i("RANGESLIDER", "User selected new date range: MIN=" + new Date(minValue) + ", MAX=" + new Date(maxValue));
                 TextView textView = (TextView) findViewById(R.id.dateTextView);
-                textView.setText(""+new Date(minValue) + "\n"+ new Date(maxValue));
+                textView.setText("" + new Date(minValue) + "\n" + new Date(maxValue));
             }
         });
 
