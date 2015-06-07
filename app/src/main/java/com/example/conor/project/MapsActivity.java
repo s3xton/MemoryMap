@@ -7,23 +7,29 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
+import android.os.Bundle;
+import android.text.Layout;
 import android.view.View;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Random;
 
 public class MapsActivity extends FragmentActivity
     implements GoogleMap.OnMapClickListener{
@@ -36,6 +42,9 @@ public class MapsActivity extends FragmentActivity
     private Criteria criteria;
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
+    public double[][] coords;
+    public int[] ratings;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,12 +56,25 @@ public class MapsActivity extends FragmentActivity
         if(lastLocation != null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
 
-        // Draw all of the messages pulled from server. (so far using dummy info)
-        double[] a = {37.001816, -122.057976};
-        int[] ratings = {1};
-        double[][] coords = {a};
-        drawCircles(coords, ratings);
 
+        // Generate some dummy coords and ratings
+        double[] a = {37.001816, -122.057976};
+        coords = new double[100][2];
+        Random r = new Random();
+        double rangeMinLat = 37.002;
+        double rangeMaxLat = 37.004;
+        double rangeMinLong = -122.06;
+        double rangeMaxLong = -122.05;
+        for(int i =0; i<coords.length; i++){
+            coords[i][0] = rangeMinLat + (rangeMaxLat - rangeMinLat) * r.nextDouble();
+            coords[i][1] = rangeMinLong + (rangeMaxLong - rangeMinLong) * r.nextDouble();
+        }
+        ratings = new int[100];
+        for(int j = 0; j<ratings.length;j++){
+            ratings[j] = 1;
+        }
+
+        // Add range slider to layout
         try {
             addRangeSlider();
         } catch (ParseException e) {
@@ -103,6 +125,7 @@ public class MapsActivity extends FragmentActivity
      */
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
+
         LocationListener locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -127,6 +150,32 @@ public class MapsActivity extends FragmentActivity
                 .strokeColor(Color.parseColor("#FFA000"))
                 .fillColor(Color.argb(30, 255, 222, 0))
                 .strokeWidth(3));
+
+        mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
+            // Takes a list of coords and draws a circle at each point with a radius
+            // relative to the rating of the post at that coord. Ratings passed as an equal-length list.
+            // Randomly chooses a color for the circles from the color list.
+
+            @Override
+            public void onCameraChange(CameraPosition cameraPosition) {
+                String[] colors = {"#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4", "#039BE5", "#0288D1"};
+                Log.i("CAMERA", "camera changed");
+                mMap.clear();
+                LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+                for (int i = 0; i < coords.length; i++) {
+                    if (bounds.contains(new LatLng(coords[i][0], coords[i][1]))) {
+                        String color = colors[0];//colors[0 + (int) (Math.random() * 5)];
+                        Circle cirlce = mMap.addCircle(new CircleOptions()
+                                .center(new LatLng(coords[i][0], coords[i][1]))
+                                .radius(ratings[i])
+                                .strokeColor(Color.parseColor(color))
+                                .fillColor(Color.parseColor(color))
+                                .strokeWidth(3));
+
+                    }
+                }
+            }
+        });
     }
 
     public void postMessage(View v){
@@ -134,21 +183,6 @@ public class MapsActivity extends FragmentActivity
         Context context = getApplicationContext();
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
-    }
-
-    // Takes a list of coords and draws a circle at each point with a radius
-    // relative to the rating of the post at that coord. Ratings passed as an equal-length list.
-    // Randomly chooses a color for the circles from the color list.
-    private void drawCircles(double[][] coords, int[] ratings){
-        String[] colors = {"#81D4FA","#4FC3F7","#29B6F6","#03A9F4","#039BE5","#0288D1"};
-        for(int i = 0; i< coords.length; i++){
-            Circle cirlce = mMap.addCircle(new CircleOptions()
-                    .center(new LatLng(coords[i][0], coords[i][1]))
-                    .radius(ratings[i])
-                    .strokeColor(Color.parseColor(colors[0 + (int)(Math.random()*5)]))
-                    .fillColor(Color.argb(30, 0, 162, 255))
-                    .strokeWidth(3));
-        }
     }
 
     @Override
