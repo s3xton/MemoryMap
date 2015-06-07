@@ -1,6 +1,7 @@
 package com.example.conor.project;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.location.Criteria;
@@ -31,7 +32,7 @@ import java.util.Random;
 public class PostActivity extends ActionBarActivity {
 
     private GoogleMap mMap;
-    private Location lastLocation;
+    private double[] lastLocationArray;
     private LocationManager locationManager;
     private Criteria criteria;
 
@@ -49,11 +50,13 @@ public class PostActivity extends ActionBarActivity {
         // Location/map stuff
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         criteria = new Criteria();
-        lastLocation = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
+        Intent intent = getIntent();
+        lastLocationArray = intent.getDoubleArrayExtra("lastLocationArray");
+
         setUpMapIfNeeded();
 
-        if(lastLocation != null)
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float) 18.5));
+        if(lastLocationArray != null)
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocationArray[0], lastLocationArray[1]), (float) 18.5));
 
 
 
@@ -63,8 +66,9 @@ public class PostActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
-        if(lastLocation != null)
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
+        if(lastLocationArray != null)
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocationArray[0], lastLocationArray[1]), (float)18.5));
+
     }
 
 
@@ -108,26 +112,9 @@ public class PostActivity extends ActionBarActivity {
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setScrollGesturesEnabled(false);
-        LocationListener locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                lastLocation = location;
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float) 18.5));
-            }
-
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {}
-
-            @Override
-            public void onProviderEnabled(String provider) {}
-
-            @Override
-            public void onProviderDisabled(String provider) {}
-        };
-
 
         Circle cirlce = mMap.addCircle(new CircleOptions()
-                .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
+                .center(new LatLng(lastLocationArray[0], lastLocationArray[1]))
                 .radius(50)
                 .strokeColor(Color.parseColor("#FFA000"))
                 .fillColor(Color.argb(30, 255, 222, 0))

@@ -193,6 +193,9 @@ public class MapsActivity extends FragmentActivity
         Intent intent = new Intent(MapsActivity.this, PostActivity.class);
         Context context = getApplicationContext();
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        double[] lastLocationArray = {lastLocation.getLatitude(),lastLocation.getLongitude()};
+        Log.i("LLA",lastLocationArray[0]+"");
+        intent.putExtra("lastLocationArray", lastLocationArray);
         context.startActivity(intent);
     }
 
