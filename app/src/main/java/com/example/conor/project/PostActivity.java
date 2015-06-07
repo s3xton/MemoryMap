@@ -127,6 +127,7 @@ public class PostActivity extends ActionBarActivity {
     public void clearText(View v){
         EditText editText = (EditText) findViewById(R.id.editText);
         editText.setText("");
+        editText.setTextColor(Color.parseColor("#000000"));
     }
 
     // Function stub for when the post button is pressed
