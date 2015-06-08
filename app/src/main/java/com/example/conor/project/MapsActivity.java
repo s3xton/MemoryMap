@@ -200,6 +200,7 @@ public class MapsActivity extends FragmentActivity
                                             1.0));
                             //circleMarker.setAlpha(0);
                             p.circleMarker = circleMarker;
+                            p.circleMarker.setAlpha(0);
                         }
 
 
