@@ -18,11 +18,9 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Toolbar;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -238,7 +236,7 @@ public class MapsActivity extends FragmentActivity
 
                 PostInfo p = entry.getValue();
                 // Draw circle if it is in bounds and not already drawn
-
+                if (bounds.contains(new LatLng(p.lat, p.lng)) && insideTimeRange(p.time)) {
                     if (p.circle == null) {
                         Circle circle = mMap.addCircle(new CircleOptions()
                                 .center(new LatLng(p.lat, p.lng))
@@ -274,6 +272,16 @@ public class MapsActivity extends FragmentActivity
                             p.circleMarker.setAlpha(0);
                             markers.put(circleMarker, p);
                         }
+                    }
+                } else { // Remove circles that are not shown
+                    if (p.circle != null) {
+                        p.circle.remove();
+                        p.circle = null;
+                    }
+                    if (p.circleMarker != null) {
+                        p.circleMarker.remove();
+                        p.circleMarker = null;
+                    }
                 }
             }
         }
