@@ -18,6 +18,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -25,16 +27,23 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.gson.Gson;
 
+import java.util.HashMap;
 import java.util.Random;
 
 
 public class PostActivity extends ActionBarActivity {
+    private static final String LOG_TAG = "MemoryMap";
+    private static final String SERVER_URL_PREFIX = "http://zach.ie/memorymap/query.php";
 
     private GoogleMap mMap;
     private double[] lastLocationArray;
     private LocationManager locationManager;
     private Criteria criteria;
+
+    // Uploader.
+    private ServerCall uploader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +142,65 @@ public class PostActivity extends ActionBarActivity {
     // Function stub for when the post button is pressed
     public void clickPost(View v){
         EditText editText = (EditText) findViewById(R.id.editText);
-        Editable textToPost = editText.getText();
+        String textToPost = editText.getText().toString();
 
+
+        // Start the call.
+        PostMessageSpec myCallSpec = new PostMessageSpec();
+        myCallSpec.url = SERVER_URL_PREFIX;
+        myCallSpec.context = this;
+
+        // Let's add the parameters.
+        HashMap<String, String> m = new HashMap<String, String>();
+        m.put("q", "set");
+        m.put("type", "text");
+        m.put("data",textToPost);
+        m.put("lat", Double.toString(lastLocationArray[0]));
+        m.put("lng", Double.toString(lastLocationArray[1]));
+        myCallSpec.setParams(m);
+
+        // Actual server call.
+        if (uploader != null) {
+            // There was already an upload in progress.
+            uploader.cancel(true);
+        }
+        uploader = new ServerCall();
+        uploader.execute(myCallSpec);
+    }
+
+
+    /**
+     * This class is used to do the HTTP call, and it specifies how to use the result.
+     */
+    class PostMessageSpec extends ServerCallSpec {
+        @Override
+        public void useResult(Context context, String result) {
+            if (result == null) {
+                // Do something here, e.g. tell the user that the server cannot be contacted.
+                Log.i(LOG_TAG, "The server call failed");
+            } else {
+                // Translates the string result, decoding the Json.
+                Log.i(LOG_TAG, "Received string: " + result);
+
+                Gson gson = new Gson();
+                PostList ml = gson.fromJson(result, PostList.class);
+
+                if(ml.result.equals("success")){
+                    Intent intent = new Intent(PostActivity.this, MapsActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    intent.putExtra("result", ml.result);
+                    getApplicationContext().startActivity(intent);
+                } else {
+                    Toast toast = Toast.makeText(getApplicationContext(), "Error:" + ml.description, Toast.LENGTH_SHORT);
+                    toast.show();
+                }
+
+                // Stores in the settings the last messages received.
+                //SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
+                //SharedPreferences.Editor editor = settings.edit();
+                //editor.putString(PREF_POSTS, circles);
+                //editor.commit();
+            }
+        }
     }
 }

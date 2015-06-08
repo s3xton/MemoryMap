@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -94,6 +95,11 @@ public class MapsActivity extends FragmentActivity
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 
+        Intent intent = getIntent();
+        if(intent.getStringExtra("result") != null && intent.getStringExtra("result").equals("success")){
+            Toast toast = Toast.makeText(getApplicationContext(), "Message successfully posted.", Toast.LENGTH_SHORT);
+            toast.show();
+        }
     }
 
     /**
@@ -169,8 +175,6 @@ public class MapsActivity extends FragmentActivity
                     }
                 } else { // Remove circles that are not shown
                     if(p.circle != null) {
-                        Log.i("", "hiding circle" + entry.getKey());
-
                         p.circle.remove();
                         p.circle = null;
                     }

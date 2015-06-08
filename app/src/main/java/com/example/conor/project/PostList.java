@@ -5,6 +5,7 @@ package com.example.conor.project;
  */
 public class PostList {
     public PostList() {};
-
+    public String result;
+    public String description;
     public PostInfo[] posts;
 }
