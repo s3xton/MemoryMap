@@ -2,6 +2,7 @@ package com.example.conor.project;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -11,6 +12,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -38,7 +40,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 public class MapsActivity extends FragmentActivity
@@ -48,18 +52,18 @@ public class MapsActivity extends FragmentActivity
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private static final String SERVER_URL_PREFIX = "http://zach.ie/memorymap/";
-    private String[] colors = {"#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4", "#039BE5", "#0288D1"};
+    private String[] colors = {"#81D4FA", "#4FC3F7", "#CD88AF", "#661141"};
     private LocationManager locationManager;
     private Location lastLocation;
     private Criteria criteria;
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
     private static long lastchange;
-    public PostInfo[] coordslist;
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public static HashMap<Marker, PostInfo> markers = new HashMap<Marker, PostInfo>();
     public int[] ratings;
     private Circle viewableRadius;
+    private Set<String> readMarkers;
     private static final int VIEW_RADIUS = 50;
 
     private PostInfo image_retrieve_url;
@@ -68,7 +72,7 @@ public class MapsActivity extends FragmentActivity
     private ServerCall uploader;
 
     // To remember the posts we received.
-    public static final String PREF_POSTS = "pref_posts";
+    public static final String PREF_POSTS = "readmarkers";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,18 +80,27 @@ public class MapsActivity extends FragmentActivity
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         criteria = new Criteria();
         lastLocation = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
+
+        // Set up map variables
         setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
+        drawViewableRadius();
+        lastchange = System.currentTimeMillis();
+
+        // Animate camera to current location
         if(lastLocation != null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
 
-        drawViewableRadius();
         // Add range slider to layout
         try {
             addRangeSlider();
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
+        // Get read markers from cache
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        readMarkers = settings.getStringSet(PREF_POSTS, new HashSet<String>());
     }
 
     @Override
@@ -101,6 +114,7 @@ public class MapsActivity extends FragmentActivity
             RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
             splashScreen.setVisibility(View.INVISIBLE);
             // Show message successful toast
+            intent.removeExtra("result");
             Toast toast = Toast.makeText(getApplicationContext(), "Message successfully posted.", Toast.LENGTH_SHORT);
             toast.show();
             // Set map
@@ -143,8 +157,6 @@ public class MapsActivity extends FragmentActivity
         }
     }
 
-
-
     /**
      * This is where we can add markers or lines, add listeners or move the camera.
      * <p/>
@@ -175,6 +187,7 @@ public class MapsActivity extends FragmentActivity
         });
     }
 
+
     public void updateMap(){
         LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
         int radius = 3;
@@ -189,8 +202,8 @@ public class MapsActivity extends FragmentActivity
                         Circle circle = mMap.addCircle(new CircleOptions()
                                 .center(new LatLng(p.lat, p.lng))
                                 .radius(radius)
-                                .strokeColor(Color.parseColor(colors[1]))
-                                .fillColor((p.opened) ? Color.parseColor("#000000") : Color.parseColor(colors[0]))
+                                .strokeColor(Color.parseColor("#AAAAAA"))
+                                .fillColor(Color.parseColor("#CCCCCC"))
                                 .strokeWidth(3));
                         p.circle = circle;
 
@@ -198,7 +211,7 @@ public class MapsActivity extends FragmentActivity
                         // markers if they are
                         float[] d = new float[2];
                         Location.distanceBetween(p.lat, p.lng, lastLocation.getLatitude(), lastLocation.getLongitude(), d);
-                        if(d[0] < VIEW_RADIUS){
+                        if(d[0] < VIEW_RADIUS || readMarkers.contains(p.lat+","+p.lng)){
                             //place marker
                             Marker circleMarker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.lat, p.lng))
@@ -206,14 +219,20 @@ public class MapsActivity extends FragmentActivity
                                     .snippet(p.data)
                                     .infoWindowAnchor((float) 0.5, (float)
                                             1.0));
-                            //circleMarker.setAlpha(0);
+                            // Set to blue if within radius
+                            if(d[0] < VIEW_RADIUS){
+                                p.circle.setStrokeColor(Color.parseColor(colors[1]));
+                                p.circle.setFillColor(Color.parseColor(colors[0]));
+                            }
+                            // Set to purple if marker was opened
+                            if(readMarkers.contains(p.lat+","+p.lng)){
+                                p.circle.setStrokeColor(Color.parseColor(colors[3]));
+                                p.circle.setFillColor(Color.parseColor(colors[2]));
+                            }
                             p.circleMarker = circleMarker;
                             p.circleMarker.setAlpha(0);
                             markers.put(circleMarker, p);
                         }
-
-
-                        Log.i("DISTANCE",d[0] + " , "+d[1]);
                     } else { // Remove circles that are not shown
                         if (p.circle != null) {
                             p.circle.remove();
@@ -337,12 +356,24 @@ public class MapsActivity extends FragmentActivity
         marker.showInfoWindow();
         PostInfo p = markers.get(marker);
         String key = marker.getPosition().toString();
-        p.opened = true;
         if(p.image != null) {
             image_retrieve_url = p;
             new ImageDownloader().execute();
         }
+        markAsRead(marker, p);
         return true;
+    }
+
+    public void markAsRead(Marker marker, PostInfo p){
+        // Change color to purple
+        p.circle.setStrokeColor(Color.parseColor(colors[3]));
+        p.circle.setFillColor(Color.parseColor(colors[2]));
+        // Add to read markers cache and save
+        readMarkers.add(p.lat+","+p.lng);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putStringSet(PREF_POSTS, readMarkers);
+        editor.commit();
     }
 
     public void setIconForMarker(Bitmap bmp){
@@ -399,11 +430,6 @@ public class MapsActivity extends FragmentActivity
                 RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
                 splashScreen.setVisibility(View.INVISIBLE);
 
-                // Stores in the settings the last messages received.
-                //SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
-                //SharedPreferences.Editor editor = settings.edit();
-                //editor.putString(PREF_POSTS, circles);
-                //editor.commit();
             }
         }
     }

@@ -21,5 +21,4 @@ public class PostInfo {
     public Bitmap bitmap;
     public Circle circle;
     public Marker circleMarker;
-    public boolean opened;
 }
