@@ -38,7 +38,7 @@ import java.util.Map;
 import static android.location.Location.*;
 
 public class MapsActivity extends FragmentActivity
-    implements GoogleMap.OnMapClickListener{
+    implements GoogleMap.OnMapClickListener, GoogleMap.OnMarkerClickListener{
 
     private static final String LOG_TAG = "MemoryMap";
 
@@ -149,17 +149,19 @@ public class MapsActivity extends FragmentActivity
 
         mMap.setOnMapClickListener(this);
 
+        mMap.setOnMarkerClickListener(this);
+
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
-                if (System.currentTimeMillis() - lastchange > 1000){
+                if (System.currentTimeMillis() - lastchange > 1000) {
                     LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
                     getMessages(bounds.southwest.latitude, bounds.northeast.latitude,
                             bounds.southwest.longitude, bounds.northeast.longitude);
                     lastchange = System.currentTimeMillis();
                 }
-                if(mMap.getCameraPosition().zoom < 16.5){
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)16.5));
+                if (mMap.getCameraPosition().zoom < 16.5) {
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float) 16.5));
                 }
             }
         });
@@ -180,7 +182,7 @@ public class MapsActivity extends FragmentActivity
                                 .center(new LatLng(p.lat, p.lng))
                                 .radius(radius)
                                 .strokeColor(Color.parseColor(colors[1]))
-                                .fillColor(Color.parseColor(colors[0]))
+                                .fillColor((p.opened)? Color.parseColor("#000000"):Color.parseColor(colors[0]))
                                 .strokeWidth(3));
                         p.circle = circle;
 
@@ -307,6 +309,15 @@ public class MapsActivity extends FragmentActivity
 
         ViewGroup layout = (ViewGroup) findViewById(R.id.sliderLayout);
         layout.addView(seekBar);
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        marker.showInfoWindow();
+        String key = marker.getPosition().toString();
+        Log.i("MARKER",key);
+        //circles.get(key).opened = true;
+        return true;
     }
 
     /**

@@ -17,4 +17,5 @@ public class PostInfo {
     public String time;
     public Circle circle;
     public Marker circleMarker;
+    public boolean opened;
 }
