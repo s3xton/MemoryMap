@@ -2,6 +2,8 @@ package com.example.conor.project;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
@@ -9,6 +11,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.text.format.DateUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +38,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static android.location.Location.*;
 
@@ -179,8 +184,8 @@ public class MapsActivity extends FragmentActivity
                         Circle circle = mMap.addCircle(new CircleOptions()
                                 .center(new LatLng(p.lat, p.lng))
                                 .radius(radius)
-                                .strokeColor(Color.parseColor(colors[1]))
-                                .fillColor(Color.parseColor(colors[0]))
+                                .strokeColor(Color.parseColor("#AAAAAA"))
+                                .fillColor(Color.parseColor("#CCCCCC"))
                                 .strokeWidth(3));
                         p.circle = circle;
 
@@ -192,17 +197,16 @@ public class MapsActivity extends FragmentActivity
                             //place marker
                             Marker circleMarker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.lat, p.lng))
-                                    .title(p.time)
+                                    .title(getTimeAgo(p.time))
                                     .snippet(p.data)
                                     .infoWindowAnchor((float) 0.5, (float)
                                             1.0));
                             //circleMarker.setAlpha(0);
+                            p.circle.setStrokeColor(Color.parseColor(colors[1]));
+                            p.circle.setFillColor(Color.parseColor(colors[0]));
                             p.circleMarker = circleMarker;
                             p.circleMarker.setAlpha(0);
                         }
-
-
-                        Log.i("DISTANCE",d[0] + " , "+d[1]);
                     } else { // Remove circles that are not shown
                         if (p.circle != null) {
                             p.circle.remove();
@@ -234,6 +238,18 @@ public class MapsActivity extends FragmentActivity
         @Override
         public void onProviderDisabled(String provider) {}
     };
+
+    private String getTimeAgo(String input){
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        Date date = null;
+        try {
+            date = format.parse(input);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return (String) DateUtils.getRelativeTimeSpanString(date.getTime(), System.currentTimeMillis(), 0);
+    }
 
     private void drawViewableRadius(){
         if(viewableRadius!=null)
@@ -308,6 +324,12 @@ public class MapsActivity extends FragmentActivity
         ViewGroup layout = (ViewGroup) findViewById(R.id.sliderLayout);
         layout.addView(seekBar);
     }
+
+    public static Bitmap decodeBase64(String input) {
+        byte[] decodedByte = Base64.decode(input, 0);
+        return BitmapFactory.decodeByteArray(decodedByte, 0, decodedByte.length);
+    }
+
 
     /**
      * This class is used to do the HTTP call, and it specifies how to use the result.
