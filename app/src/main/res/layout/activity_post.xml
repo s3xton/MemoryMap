@@ -7,7 +7,7 @@
     tools:context="com.example.conor.project.PostActivity">
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-        android:layout_height="180dp" android:id="@+id/map" tools:context=".MapsActivity"
+        android:layout_height="350dp" android:id="@+id/map" tools:context=".MapsActivity"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         tools:layout="@layout/activity_maps" />
 
@@ -22,19 +22,20 @@
         android:onClick="clearText"/>
 
     <Button
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_width="80dp"
+        android:layout_height="40dp"
         android:text="Post"
         android:onClick="clickPost"
         android:id="@+id/post_button"
         android:background="#ffffc107"
-        android:textColor="#ff3f0000"
-        android:layout_below ='@+id/editText'/>
+        android:textColor="#FFFFFF"
+        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"/>
 
 
     <ImageView
         android:layout_width="60dp"
-        android:layout_height="60dp"
+        android:layout_height="100dp"
         android:onClick="clickPhoto"
         android:src="@drawable/camerax"
         android:id="@+id/photoButton"

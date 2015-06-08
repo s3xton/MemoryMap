@@ -18,9 +18,11 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Toolbar;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -91,7 +93,7 @@ public class MapsActivity extends FragmentActivity
         if(lastLocation != null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
 
-        // Add range slider to layout
+        // Layout stuff
         try {
             addRangeSlider();
         } catch (ParseException e) {
@@ -101,6 +103,8 @@ public class MapsActivity extends FragmentActivity
         // Get read markers from cache
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         readMarkers = settings.getStringSet(PREF_POSTS, new HashSet<String>());
+
+
     }
 
     @Override
@@ -174,6 +178,7 @@ public class MapsActivity extends FragmentActivity
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
+
                 if (System.currentTimeMillis() - lastchange > 1000) {
                     LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
                     getMessages(bounds.southwest.latitude, bounds.northeast.latitude,
@@ -194,16 +199,18 @@ public class MapsActivity extends FragmentActivity
         if(circles != null) {
             // Iterate over all our cached circles
             for (Map.Entry<String, PostInfo> entry : circles.entrySet()) {
+
                 PostInfo p = entry.getValue();
                 // Draw circle if it is in bounds and not already drawn
                 if (bounds.contains(new LatLng(p.lat, p.lng))) {
                     if (p.circle == null) {
-                        String color = colors[0];//colors[0 + (int) (Math.random() * 5)];
+                        int alpha = 100 + p.score;
+                        int fill = Color.argb(alpha, 40, 83, 255);
                         Circle circle = mMap.addCircle(new CircleOptions()
                                 .center(new LatLng(p.lat, p.lng))
                                 .radius(radius)
                                 .strokeColor(Color.parseColor("#AAAAAA"))
-                                .fillColor(Color.parseColor("#CCCCCC"))
+                                .fillColor(fill)
                                 .strokeWidth(3));
                         p.circle = circle;
 
@@ -376,6 +383,13 @@ public class MapsActivity extends FragmentActivity
         editor.commit();
     }
 
+    public void refreshMap(){
+        mMap.clear();
+        circles = new HashMap<String, PostInfo>();
+        markers = new HashMap<Marker, PostInfo>();
+
+    }
+
     public void setIconForMarker(Bitmap bmp){
         image_retrieve_url.bitmap = bmp;
         image_retrieve_url.circleMarker.hideInfoWindow();
@@ -433,6 +447,8 @@ public class MapsActivity extends FragmentActivity
             }
         }
     }
+
+
 }
 
 
