@@ -16,7 +16,6 @@
             android:layout_height="fill_parent"
             android:layout_above="@+id/mLlayoutBottomButtons" >
         </RelativeLayout>
-
         <fragment xmlns:android="http://schemas.android.com/apk/res/android"
             xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
             android:layout_height="match_parent" android:id="@+id/map" tools:context=".MapsActivity"
@@ -103,8 +102,18 @@
             android:layout_centerVertical="true"
             android:layout_alignParentBottom="true"
             android:layout_centerInParent="true"
-            android:paddingBottom="80dp"/>
-        </RelativeLayout>
+            android:paddingBottom="100dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text=""
+            android:textColor="#ffffffff"
+            android:id="@+id/smallLoading"
+            android:layout_above="@+id/progressBar"
+            android:layout_centerHorizontal="true" />
+    </RelativeLayout>
 
 
 

@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,10 +61,11 @@ public class MapsActivity extends FragmentActivity
     private Criteria criteria;
     private static final long MIN_TIME = 400;
     private static final float MIN_DISTANCE = 1000;
-    private static long lastchange;
+    private static boolean shouldchange;
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public static HashMap<Marker, PostInfo> markers = new HashMap<Marker, PostInfo>();
     public int[] ratings;
+    private boolean photobig = false;
     private Circle viewableRadius;
     private Set<String> readMarkers;
     private static final int VIEW_RADIUS = 50;
@@ -79,21 +81,27 @@ public class MapsActivity extends FragmentActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_maps);
+
+        TextView tv = (TextView) findViewById(R.id.smallLoading);
+        tv.setText("Acquiring Location...");
+
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         criteria = new Criteria();
         lastLocation = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
 
         // Set up map variables
-        setContentView(R.layout.activity_maps);
         setUpMapIfNeeded();
         drawViewableRadius();
-        lastchange = System.currentTimeMillis();
+        shouldchange = true;
 
         // Animate camera to current location
         if(lastLocation != null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
 
-        // Layout stuff
+        tv.setText("Retrieving Server Data...");
+
+        // Add range slider to layout
         try {
             addRangeSlider();
         } catch (ParseException e) {
@@ -179,11 +187,15 @@ public class MapsActivity extends FragmentActivity
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
 
-                if (System.currentTimeMillis() - lastchange > 1000) {
+                if (shouldchange) {
+                    // Find bounds around the viewport for entire update
                     LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-                    getMessages(bounds.southwest.latitude, bounds.northeast.latitude,
-                            bounds.southwest.longitude, bounds.northeast.longitude);
-                    lastchange = System.currentTimeMillis();
+                    Log.i("", "" + bounds.northeast.longitude);
+                    double deltalat = bounds.northeast.latitude - bounds.southwest.latitude;
+                    double deltalng = bounds.northeast.longitude - bounds.southwest.longitude;
+                    getMessages(bounds.southwest.latitude - deltalat, bounds.northeast.latitude + deltalat,
+                            bounds.southwest.longitude - deltalng, bounds.northeast.longitude + deltalng);
+                    shouldchange = false;
                 }
                 if (mMap.getCameraPosition().zoom < 16.5) {
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float) 16.5));
@@ -338,21 +350,20 @@ public class MapsActivity extends FragmentActivity
 
     private void addRangeSlider() throws ParseException {
         // create RangeSeekBar as Date range between 1950-12-01 and now
-        Date minDate = new SimpleDateFormat("yyyy-MM-dd").parse("2015-05-06");
+        Calendar calendar = Calendar.getInstance(); // this would default to now
+        calendar.add(Calendar.DAY_OF_MONTH, -14);
         Date maxDate = new Date();
         Context context = getApplicationContext();
-        RangeSeekBar<Long> seekBar = new RangeSeekBar<Long>(minDate.getTime(), maxDate.getTime(), context);
+        RangeSeekBar<Long> seekBar = new RangeSeekBar<Long>(calendar.getTimeInMillis(), maxDate.getTime(), context);
         seekBar.setOnRangeSeekBarChangeListener(new RangeSeekBar.OnRangeSeekBarChangeListener<Long>() {
             @Override
             public void onRangeSeekBarValuesChanged(RangeSeekBar<?> bar, Long minValue, Long maxValue) {
                 // handle changed range values
-                Log.i("RANGESLIDER", "User selected new date range: MIN=" + new Date(minValue) + ", MAX=" + new Date(maxValue));
                 TextView textView = (TextView) findViewById(R.id.dateTextView);
-                textView.setText("" + new Date(minValue) + "\n" + new Date(maxValue));
+                textView.setText("" + (String) DateUtils.getRelativeTimeSpanString(minValue, System.currentTimeMillis(), 0) + "-" + (String) DateUtils.getRelativeTimeSpanString(maxValue, System.currentTimeMillis(), 0));
+
             }
         });
-
-        // add RangeSeekBar to pre-defined layout
 
         ViewGroup layout = (ViewGroup) findViewById(R.id.sliderLayout);
         layout.addView(seekBar);
@@ -363,9 +374,9 @@ public class MapsActivity extends FragmentActivity
         marker.showInfoWindow();
         PostInfo p = markers.get(marker);
         String key = marker.getPosition().toString();
-        if(p.image != null) {
-            image_retrieve_url = p;
-            new ImageDownloader().execute();
+        if(p.type.equals("image")) {
+            Object[] inputimage = {p};
+            new ImageDownloader().execute(inputimage);
         }
         markAsRead(marker, p);
         return true;
@@ -383,38 +394,28 @@ public class MapsActivity extends FragmentActivity
         editor.commit();
     }
 
-    public void refreshMap(){
-        mMap.clear();
-        circles = new HashMap<String, PostInfo>();
-        markers = new HashMap<Marker, PostInfo>();
-
-    }
-
-    public void setIconForMarker(Bitmap bmp){
-        image_retrieve_url.bitmap = bmp;
-        image_retrieve_url.circleMarker.hideInfoWindow();
-        image_retrieve_url.circleMarker.showInfoWindow();
-    }
 
     private class ImageDownloader extends AsyncTask {
         private Bitmap bmp;
 
         @Override
-        protected void onPostExecute(Object result) {
-            if (bmp != null) {
-                setIconForMarker(bmp);
-            }
+        protected void onPostExecute(Object res) {
+            PostInfo result = (PostInfo) res;
+            result.bitmap = bmp;
+            result.circleMarker.hideInfoWindow();
+            result.circleMarker.showInfoWindow();
         }
 
         @Override
-        protected Bitmap doInBackground(Object[] param) {
+        protected Object doInBackground(Object[] param) {
             try {
-                InputStream in = new URL(SERVER_URL_PREFIX + "images/" + image_retrieve_url.image).openStream();
+                InputStream in = new URL(SERVER_URL_PREFIX + "images/" + ((PostInfo)param[0]).image).openStream();
                 bmp = BitmapFactory.decodeStream(in);
+                ((PostInfo) param[0]).bitmap = bmp;
             } catch (Exception e) {
                 // log error
             }
-            return null;
+            return param[0];
         }
 
     }
@@ -434,10 +435,11 @@ public class MapsActivity extends FragmentActivity
 
                 Gson gson = new Gson();
                 PostList ml = gson.fromJson(result, PostList.class);
-                if(ml != null)
+                if(ml != null && ml.posts != null)
                     for (int i = 0; i < ml.posts.length; i++) {
                         circles.put(ml.posts[i].lat + "," + ml.posts[i].lng, ml.posts[i]);
                     }
+
                 updateMap();
 
                 // Hide the splash screen and progress bar
