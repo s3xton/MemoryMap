@@ -168,6 +168,16 @@ public class PostActivity extends ActionBarActivity {
         uploader.execute(myCallSpec);
     }
 
+    public void finishPost(Context context, PostList res){
+        if(res.result.equals("success")){
+            Intent intent = new Intent(PostActivity.this, MapsActivity.class);
+            intent.putExtra("result", res.result);
+            context.startActivity(intent);
+        } else {
+            Toast toast = Toast.makeText(getApplicationContext(), "Error:" + res.description, Toast.LENGTH_SHORT);
+            toast.show();
+        }
+    }
 
     /**
      * This class is used to do the HTTP call, and it specifies how to use the result.
@@ -185,15 +195,7 @@ public class PostActivity extends ActionBarActivity {
                 Gson gson = new Gson();
                 PostList ml = gson.fromJson(result, PostList.class);
 
-                if(ml.result.equals("success")){
-                    Intent intent = new Intent(PostActivity.this, MapsActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    intent.putExtra("result", ml.result);
-                    getApplicationContext().startActivity(intent);
-                } else {
-                    Toast toast = Toast.makeText(getApplicationContext(), "Error:" + ml.description, Toast.LENGTH_SHORT);
-                    toast.show();
-                }
+                finishPost(context, ml);
 
                 // Stores in the settings the last messages received.
                 //SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
