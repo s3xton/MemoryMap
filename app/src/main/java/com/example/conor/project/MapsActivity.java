@@ -77,29 +77,31 @@ public class MapsActivity extends FragmentActivity
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
-
-
     }
-
-
 
     @Override
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
-        if(lastLocation != null)
+
+        Intent intent = getIntent();
+        if(intent.getStringExtra("result") != null && intent.getStringExtra("result").equals("success")){
+            // Hide the splash screen and progress bar
+            RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
+            splashScreen.setVisibility(View.INVISIBLE);
+            // Show message successful toast
+            Toast toast = Toast.makeText(getApplicationContext(), "Message successfully posted.", Toast.LENGTH_SHORT);
+            toast.show();
+            // Set map
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
+        }
+
+        if(lastLocation != null && intent.getStringExtra("result") == null)
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
         // Then start to request location updates, directing them to locationListener.
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-
-        Intent intent = getIntent();
-        if(intent.getStringExtra("result") != null && intent.getStringExtra("result").equals("success")){
-            Toast toast = Toast.makeText(getApplicationContext(), "Message successfully posted.", Toast.LENGTH_SHORT);
-            toast.show();
-        }
     }
 
     /**
