@@ -24,8 +24,10 @@
 
         <TextView
             android:id="@+id/dateTextView"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:paddingBottom="1dp"
             android:layout_above="@+id/sliderLayout"
             android:text=""
             android:textColor="#ff000000"/>
@@ -109,6 +111,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:text=""
+            android:paddingBottom="3dp"
             android:textColor="#ffffffff"
             android:id="@+id/smallLoading"
             android:layout_above="@+id/progressBar"

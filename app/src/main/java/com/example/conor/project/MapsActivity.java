@@ -213,7 +213,6 @@ public class MapsActivity extends FragmentActivity
         mMap.clear();
 
         LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-        Log.i("", "" + bounds.northeast.longitude);
         double deltalat = bounds.northeast.latitude - bounds.southwest.latitude;
         double deltalng = bounds.northeast.longitude - bounds.southwest.longitude;
         double minLat = bounds.southwest.latitude - deltalat;
@@ -228,15 +227,14 @@ public class MapsActivity extends FragmentActivity
     }
 
     public void updateMap(){
-        LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
         int radius = 3;
         if(circles != null) {
             // Iterate over all our cached circles
             for (Map.Entry<String, PostInfo> entry : circles.entrySet()) {
 
                 PostInfo p = entry.getValue();
-                // Draw circle if it is in bounds and not already drawn
-                if (bounds.contains(new LatLng(p.lat, p.lng)) && insideTimeRange(p.time)) {
+                // Draw circle if it is in time range
+                if (insideTimeRange(p.time)) {
                     if (p.circle == null) {
                         int alpha = 100 + p.score;
                         int fill = Color.argb(alpha, 40, 83, 255);
@@ -297,7 +295,6 @@ public class MapsActivity extends FragmentActivity
             e.printStackTrace();
         }
         long time = date.getTime();
-        Log.i("", time + " " + timeBounds[0] + "," + timeBounds[1]);
         return time >= timeBounds[0] && time <= timeBounds[1];
     }
 
@@ -370,7 +367,6 @@ public class MapsActivity extends FragmentActivity
         Context context = getApplicationContext();
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         double[] lastLocationArray = {lastLocation.getLatitude(),lastLocation.getLongitude()};
-        Log.i("LLA",lastLocationArray[0]+"");
         intent.putExtra("lastLocationArray", lastLocationArray);
         context.startActivity(intent);
     }
@@ -392,7 +388,7 @@ public class MapsActivity extends FragmentActivity
             public void onRangeSeekBarValuesChanged(RangeSeekBar<?> bar, Long minValue, Long maxValue) {
                 // handle changed range values
                 TextView textView = (TextView) findViewById(R.id.dateTextView);
-                textView.setText("" + (String) DateUtils.getRelativeTimeSpanString(minValue, System.currentTimeMillis(), 0) + "-" + (String) DateUtils.getRelativeTimeSpanString(maxValue, System.currentTimeMillis(), 0));
+                textView.setText("" + (String) DateUtils.getRelativeTimeSpanString(minValue, System.currentTimeMillis(), 0) + " - " + (String) DateUtils.getRelativeTimeSpanString(maxValue, System.currentTimeMillis(), 0));
                 timeBounds[0] = minValue;
                 timeBounds[1] = maxValue;
                 updateMap();

@@ -171,7 +171,6 @@ public class PostActivity extends ActionBarActivity {
             Toast toast = Toast.makeText(getApplicationContext(), "Uploading image...", Toast.LENGTH_SHORT);
             toast.show();
         }
-        Log.i("xx", "xx");
         EditText editText = (EditText) findViewById(R.id.editText);
         String textToPost = editText.getText().toString();
 
