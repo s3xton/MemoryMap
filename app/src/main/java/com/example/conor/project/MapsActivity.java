@@ -28,10 +28,8 @@ import com.google.gson.Gson;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class MapsActivity extends FragmentActivity
@@ -192,7 +190,6 @@ public class MapsActivity extends FragmentActivity
         @Override
         public void onLocationChanged(Location location) {
             lastLocation = location;
-            Log.i(LOG_TAG, "Location Updated");
             drawViewableRadius();
         }
 
