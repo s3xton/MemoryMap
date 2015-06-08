@@ -17,7 +17,9 @@ package com.example.conor.project;
 import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
+
 import com.google.android.gms.maps.GoogleMap.InfoWindowAdapter;
 import com.google.android.gms.maps.model.Marker;
 
@@ -42,8 +44,18 @@ public class PopupAdapter implements InfoWindowAdapter {
         }
 
         TextView tv=(TextView)popup.findViewById(R.id.title);
-
         tv.setText(marker.getTitle());
+
+        ImageView iv = (ImageView) popup.findViewById(R.id.icon);
+
+        if(MapsActivity.markers.get(marker).bitmap != null) {
+            iv.setVisibility(View.VISIBLE);
+            iv.setImageBitmap(MapsActivity.markers.get(marker).bitmap);
+        } else {
+            iv.setVisibility(View.GONE);
+            iv.setImageBitmap(null);
+        }
+
         tv=(TextView)popup.findViewById(R.id.snippet);
         tv.setText(marker.getSnippet());
 

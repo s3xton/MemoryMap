@@ -2,13 +2,17 @@ package com.example.conor.project;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,16 +30,16 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polygon;
 import com.google.gson.Gson;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
-import static android.location.Location.*;
+import java.util.TimeZone;
 
 public class MapsActivity extends FragmentActivity
     implements GoogleMap.OnMapClickListener, GoogleMap.OnMarkerClickListener{
@@ -43,7 +47,7 @@ public class MapsActivity extends FragmentActivity
     private static final String LOG_TAG = "MemoryMap";
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
-    private static final String SERVER_URL_PREFIX = "http://zach.ie/memorymap/query.php";
+    private static final String SERVER_URL_PREFIX = "http://zach.ie/memorymap/";
     private String[] colors = {"#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4", "#039BE5", "#0288D1"};
     private LocationManager locationManager;
     private Location lastLocation;
@@ -53,9 +57,13 @@ public class MapsActivity extends FragmentActivity
     private static long lastchange;
     public PostInfo[] coordslist;
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
+    public static HashMap<Marker, PostInfo> markers = new HashMap<Marker, PostInfo>();
     public int[] ratings;
     private Circle viewableRadius;
     private static final int VIEW_RADIUS = 50;
+
+    private PostInfo image_retrieve_url;
+
     // Uploader.
     private ServerCall uploader;
 
@@ -182,7 +190,7 @@ public class MapsActivity extends FragmentActivity
                                 .center(new LatLng(p.lat, p.lng))
                                 .radius(radius)
                                 .strokeColor(Color.parseColor(colors[1]))
-                                .fillColor((p.opened)? Color.parseColor("#000000"):Color.parseColor(colors[0]))
+                                .fillColor((p.opened) ? Color.parseColor("#000000") : Color.parseColor(colors[0]))
                                 .strokeWidth(3));
                         p.circle = circle;
 
@@ -194,13 +202,14 @@ public class MapsActivity extends FragmentActivity
                             //place marker
                             Marker circleMarker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.lat, p.lng))
-                                    .title(p.time)
+                                    .title(getTimeAgo(p.time))
                                     .snippet(p.data)
                                     .infoWindowAnchor((float) 0.5, (float)
                                             1.0));
                             //circleMarker.setAlpha(0);
                             p.circleMarker = circleMarker;
                             p.circleMarker.setAlpha(0);
+                            markers.put(circleMarker, p);
                         }
 
 
@@ -218,6 +227,18 @@ public class MapsActivity extends FragmentActivity
                 }
             }
         }
+    }
+
+    private String getTimeAgo(String input){
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        Date date = null;
+        try {
+            date = format.parse(input);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return (String) DateUtils.getRelativeTimeSpanString(date.getTime(), System.currentTimeMillis(), 0);
     }
 
     LocationListener locationListener = new LocationListener() {
@@ -252,7 +273,7 @@ public class MapsActivity extends FragmentActivity
 
         // Start the call.
         PostMessageSpec myCallSpec = new PostMessageSpec();
-        myCallSpec.url = SERVER_URL_PREFIX;
+        myCallSpec.url = SERVER_URL_PREFIX + "query.php";
         myCallSpec.context = this;
 
         // Let's add the parameters.
@@ -314,10 +335,43 @@ public class MapsActivity extends FragmentActivity
     @Override
     public boolean onMarkerClick(Marker marker) {
         marker.showInfoWindow();
+        PostInfo p = markers.get(marker);
         String key = marker.getPosition().toString();
-        Log.i("MARKER",key);
-        //circles.get(key).opened = true;
+        p.opened = true;
+        if(p.image != null) {
+            image_retrieve_url = p;
+            new ImageDownloader().execute();
+        }
         return true;
+    }
+
+    public void setIconForMarker(Bitmap bmp){
+        image_retrieve_url.bitmap = bmp;
+        image_retrieve_url.circleMarker.hideInfoWindow();
+        image_retrieve_url.circleMarker.showInfoWindow();
+    }
+
+    private class ImageDownloader extends AsyncTask {
+        private Bitmap bmp;
+
+        @Override
+        protected void onPostExecute(Object result) {
+            if (bmp != null) {
+                setIconForMarker(bmp);
+            }
+        }
+
+        @Override
+        protected Bitmap doInBackground(Object[] param) {
+            try {
+                InputStream in = new URL(SERVER_URL_PREFIX + "images/" + image_retrieve_url.image).openStream();
+                bmp = BitmapFactory.decodeStream(in);
+            } catch (Exception e) {
+                // log error
+            }
+            return null;
+        }
+
     }
 
     /**
