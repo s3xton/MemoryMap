@@ -64,10 +64,12 @@ public class MapsActivity extends FragmentActivity
     private static boolean shouldchange;
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public static HashMap<Marker, PostInfo> markers = new HashMap<Marker, PostInfo>();
+    private static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public int[] ratings;
     private boolean photobig = false;
     private Circle viewableRadius;
     private Set<String> readMarkers;
+    private long[] timeBounds = {0, Long.MAX_VALUE};
     private static final int VIEW_RADIUS = 50;
 
     private PostInfo image_retrieve_url;
@@ -85,6 +87,7 @@ public class MapsActivity extends FragmentActivity
 
         TextView tv = (TextView) findViewById(R.id.smallLoading);
         tv.setText("Acquiring Location...");
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         criteria = new Criteria();
@@ -249,7 +252,7 @@ public class MapsActivity extends FragmentActivity
                         // markers if they are
                         float[] d = new float[2];
                         Location.distanceBetween(p.lat, p.lng, lastLocation.getLatitude(), lastLocation.getLongitude(), d);
-                        if(d[0] < VIEW_RADIUS || readMarkers.contains(p.lat+","+p.lng)){
+                        if (d[0] < VIEW_RADIUS || readMarkers.contains(p.lat + "," + p.lng)) {
                             //place marker
                             Marker circleMarker = mMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(p.lat, p.lng))
@@ -258,12 +261,12 @@ public class MapsActivity extends FragmentActivity
                                     .infoWindowAnchor((float) 0.5, (float)
                                             1.0));
                             // Set to blue if within radius
-                            if(d[0] < VIEW_RADIUS){
+                            if (d[0] < VIEW_RADIUS) {
                                 p.circle.setStrokeColor(Color.parseColor(colors[1]));
                                 p.circle.setFillColor(Color.parseColor(colors[0]));
                             }
                             // Set to purple if marker was opened
-                            if(readMarkers.contains(p.lat+","+p.lng)){
+                            if (readMarkers.contains(p.lat + "," + p.lng)) {
                                 p.circle.setStrokeColor(Color.parseColor(colors[3]));
                                 p.circle.setFillColor(Color.parseColor(colors[2]));
                             }
@@ -271,15 +274,24 @@ public class MapsActivity extends FragmentActivity
                             p.circleMarker.setAlpha(0);
                             markers.put(circleMarker, p);
                         }
-
                 }
             }
         }
     }
 
+    private boolean insideTimeRange(String input){
+        Date date = null;
+        try {
+            date = format.parse(input);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        long time = date.getTime();
+        Log.i("", time + " " + timeBounds[0] + "," + timeBounds[1]);
+        return time >= timeBounds[0] && time <= timeBounds[1];
+    }
+
     private String getTimeAgo(String input){
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        format.setTimeZone(TimeZone.getTimeZone("GMT"));
         Date date = null;
         try {
             date = format.parse(input);
@@ -361,7 +373,7 @@ public class MapsActivity extends FragmentActivity
     private void addRangeSlider() throws ParseException {
         // create RangeSeekBar as Date range between 1950-12-01 and now
         Calendar calendar = Calendar.getInstance(); // this would default to now
-        calendar.add(Calendar.DAY_OF_MONTH, -14);
+        calendar.add(Calendar.DAY_OF_MONTH, -2);
         Date maxDate = new Date();
         Context context = getApplicationContext();
         RangeSeekBar<Long> seekBar = new RangeSeekBar<Long>(calendar.getTimeInMillis(), maxDate.getTime(), context);
@@ -371,7 +383,9 @@ public class MapsActivity extends FragmentActivity
                 // handle changed range values
                 TextView textView = (TextView) findViewById(R.id.dateTextView);
                 textView.setText("" + (String) DateUtils.getRelativeTimeSpanString(minValue, System.currentTimeMillis(), 0) + "-" + (String) DateUtils.getRelativeTimeSpanString(maxValue, System.currentTimeMillis(), 0));
-
+                timeBounds[0] = minValue;
+                timeBounds[1] = maxValue;
+                updateMap();
             }
         });
 
