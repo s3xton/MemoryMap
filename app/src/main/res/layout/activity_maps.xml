@@ -67,7 +67,7 @@
                 android:textColor="#FFFFFF"
                 android:background="#FFC107"
                 android:layout_marginLeft="1dp"
-                android:onClick="refreshMap"/>
+                android:onClick="refreshButton"/>
 
 
         </LinearLayout>

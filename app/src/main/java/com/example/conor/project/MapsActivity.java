@@ -188,13 +188,8 @@ public class MapsActivity extends FragmentActivity
             public void onCameraChange(CameraPosition cameraPosition) {
 
                 if (shouldchange) {
-                    // Find bounds around the viewport for entire update
-                    LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-                    Log.i("", "" + bounds.northeast.longitude);
-                    double deltalat = bounds.northeast.latitude - bounds.southwest.latitude;
-                    double deltalng = bounds.northeast.longitude - bounds.southwest.longitude;
-                    getMessages(bounds.southwest.latitude - deltalat, bounds.northeast.latitude + deltalat,
-                            bounds.southwest.longitude - deltalng, bounds.northeast.longitude + deltalng);
+                    // Populates map
+                    refresh();
                     shouldchange = false;
                 }
                 if (mMap.getCameraPosition().zoom < 16.5) {
@@ -204,6 +199,30 @@ public class MapsActivity extends FragmentActivity
         });
     }
 
+    public void refreshButton(View v){
+        refresh();
+    }
+    
+    public void refresh(){
+        // Clear the hashmaps
+        circles = new HashMap<String, PostInfo>();
+        markers = new HashMap<Marker, PostInfo>();
+
+        // Clear the map
+        mMap.clear();
+
+        LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+        Log.i("", "" + bounds.northeast.longitude);
+        double deltalat = bounds.northeast.latitude - bounds.southwest.latitude;
+        double deltalng = bounds.northeast.longitude - bounds.southwest.longitude;
+        double minLat = bounds.southwest.latitude - deltalat;
+        double maxLat = bounds.northeast.latitude + deltalat;
+        double minLong = bounds.southwest.longitude - deltalng;
+        double maxLong = bounds.northeast.longitude + deltalng;
+        getMessages(minLat, maxLat,minLong,maxLong);
+
+        updateMap();
+    }
 
     public void updateMap(){
         LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
@@ -214,7 +233,7 @@ public class MapsActivity extends FragmentActivity
 
                 PostInfo p = entry.getValue();
                 // Draw circle if it is in bounds and not already drawn
-                if (bounds.contains(new LatLng(p.lat, p.lng))) {
+
                     if (p.circle == null) {
                         int alpha = 100 + p.score;
                         int fill = Color.argb(alpha, 40, 83, 255);
@@ -252,16 +271,7 @@ public class MapsActivity extends FragmentActivity
                             p.circleMarker.setAlpha(0);
                             markers.put(circleMarker, p);
                         }
-                    } else { // Remove circles that are not shown
-                        if (p.circle != null) {
-                            p.circle.remove();
-                            p.circle = null;
-                        }
-                        if (p.circleMarker != null) {
-                            p.circleMarker.remove();
-                            p.circleMarker = null;
-                        }
-                    }
+
                 }
             }
         }
