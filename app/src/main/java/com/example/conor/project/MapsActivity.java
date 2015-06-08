@@ -151,6 +151,9 @@ public class MapsActivity extends FragmentActivity
                             bounds.southwest.longitude, bounds.northeast.longitude);
                     lastchange = System.currentTimeMillis();
                 }
+                if(mMap.getCameraPosition().zoom < 16.5){
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)16.5));
+                }
             }
         });
     }
