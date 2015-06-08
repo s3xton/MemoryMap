@@ -24,6 +24,9 @@ import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
 import com.google.gson.Gson;
 
 import java.text.ParseException;
@@ -33,6 +36,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static android.location.Location.*;
 
 public class MapsActivity extends FragmentActivity
     implements GoogleMap.OnMapClickListener{
@@ -52,7 +57,7 @@ public class MapsActivity extends FragmentActivity
     public HashMap<String, PostInfo> circles = new HashMap<String, PostInfo>();
     public int[] ratings;
     private Circle viewableRadius;
-
+    private static final int VIEW_RADIUS = 50;
     // Uploader.
     private ServerCall uploader;
 
@@ -140,6 +145,8 @@ public class MapsActivity extends FragmentActivity
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
+        mMap.setInfoWindowAdapter(new PopupAdapter(getLayoutInflater()));
+
         mMap.setMyLocationEnabled(true);
 
         mMap.setOnMapClickListener(this);
@@ -162,26 +169,50 @@ public class MapsActivity extends FragmentActivity
 
     public void updateMap(){
         LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+        int radius = 3;
         if(circles != null) {
             // Iterate over all our cached circles
             for (Map.Entry<String, PostInfo> entry : circles.entrySet()) {
                 PostInfo p = entry.getValue();
                 // Draw circle if it is in bounds and not already drawn
                 if (bounds.contains(new LatLng(p.lat, p.lng))) {
-                    if(p.circle == null) {
+                    if (p.circle == null) {
                         String color = colors[0];//colors[0 + (int) (Math.random() * 5)];
                         Circle circle = mMap.addCircle(new CircleOptions()
                                 .center(new LatLng(p.lat, p.lng))
-                                .radius(1)
-                                .strokeColor(Color.parseColor(color))
-                                .fillColor(Color.parseColor(color))
+                                .radius(radius)
+                                .strokeColor(Color.parseColor(colors[1]))
+                                .fillColor(Color.parseColor(colors[0]))
                                 .strokeWidth(3));
                         p.circle = circle;
-                    }
-                } else { // Remove circles that are not shown
-                    if(p.circle != null) {
-                        p.circle.remove();
-                        p.circle = null;
+
+                        // Check and see if the circle is with the large cirlce radius and draw
+                        // markers if they are
+                        float[] d = new float[2];
+                        Location.distanceBetween(p.lat, p.lng, lastLocation.getLatitude(), lastLocation.getLongitude(), d);
+                        if(d[0] < VIEW_RADIUS){
+                            //place marker
+                            Marker circleMarker = mMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(p.lat, p.lng))
+                                    .title(p.time)
+                                    .snippet(p.data)
+                                    .infoWindowAnchor((float) 0.5, (float)
+                                            1.0));
+                            //circleMarker.setAlpha(0);
+                            p.circleMarker = circleMarker;
+                        }
+
+
+                        Log.i("DISTANCE",d[0] + " , "+d[1]);
+                    } else { // Remove circles that are not shown
+                        if (p.circle != null) {
+                            p.circle.remove();
+                            p.circle = null;
+                        }
+                        if (p.circleMarker != null) {
+                            p.circleMarker.remove();
+                            p.circleMarker = null;
+                        }
                     }
                 }
             }
@@ -211,7 +242,7 @@ public class MapsActivity extends FragmentActivity
             viewableRadius.remove();
         viewableRadius = mMap.addCircle(new CircleOptions()
                 .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
-                .radius(50)
+                .radius(VIEW_RADIUS)
                 .strokeColor(Color.parseColor("#FFA000"))
                 .fillColor(Color.argb(30, 255, 222, 0))
                 .strokeWidth(3));

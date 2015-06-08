@@ -1,6 +1,7 @@
 package com.example.conor.project;
 
 import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.Marker;
 
 /**
  * Created by Zachary Diebold on 07/06/2015.
@@ -15,4 +16,5 @@ public class PostInfo {
     public float lng;
     public String time;
     public Circle circle;
+    public Marker circleMarker;
 }
