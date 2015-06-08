@@ -222,6 +222,8 @@ public class MapsActivity extends FragmentActivity
         double maxLong = bounds.northeast.longitude + deltalng;
         getMessages(minLat, maxLat,minLong,maxLong);
 
+        drawViewableRadius();
+        
         updateMap();
     }
 
