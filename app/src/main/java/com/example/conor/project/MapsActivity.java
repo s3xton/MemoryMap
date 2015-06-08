@@ -53,7 +53,7 @@ public class MapsActivity extends FragmentActivity
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private static final String SERVER_URL_PREFIX = "http://zach.ie/memorymap/";
-    private String[] colors = {"#81D4FA", "#4FC3F7", "#CD88AF", "#661141"};
+    private String[] colors = {"#2196F3", "#1976D2", "#CD88AF", "#661141", "#42A5F5", "#BBDEFB"};
     private LocationManager locationManager;
     private Location lastLocation;
     private Criteria criteria;
@@ -222,7 +222,7 @@ public class MapsActivity extends FragmentActivity
         getMessages(minLat, maxLat,minLong,maxLong);
 
         drawViewableRadius();
-        
+
         updateMap();
     }
 
@@ -236,13 +236,11 @@ public class MapsActivity extends FragmentActivity
                 // Draw circle if it is in time range
                 if (insideTimeRange(p.time)) {
                     if (p.circle == null) {
-                        int alpha = 100 + p.score;
-                        int fill = Color.argb(alpha, 40, 83, 255);
                         Circle circle = mMap.addCircle(new CircleOptions()
                                 .center(new LatLng(p.lat, p.lng))
                                 .radius(radius)
-                                .strokeColor(Color.parseColor("#AAAAAA"))
-                                .fillColor(fill)
+                                .strokeColor(Color.parseColor(colors[4]))
+                                .fillColor(Color.parseColor(colors[5]))
                                 .strokeWidth(3));
                         p.circle = circle;
 
