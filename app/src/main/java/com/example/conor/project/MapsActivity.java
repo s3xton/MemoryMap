@@ -173,13 +173,11 @@ public class MapsActivity extends FragmentActivity
      */
     private void setUpMap() {
         mMap.setInfoWindowAdapter(new PopupAdapter(getLayoutInflater()));
-
+        // Adds blue do to map
         mMap.setMyLocationEnabled(true);
-
+        // Setup listeners
         mMap.setOnMapClickListener(this);
-
         mMap.setOnMarkerClickListener(this);
-
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
@@ -190,10 +188,12 @@ public class MapsActivity extends FragmentActivity
         });
     }
 
+    // Function called by refresh button. Needed because it must take a view as an argument but refresh is also called elsewhere in the program
     public void refreshButton(View v){
         refresh();
     }
-    
+
+    // Clear all of the data structures, clear the map, call the server, repopulate data structures and map
     public void refresh(){
         // Clear the hashmaps
         circles = new HashMap<String, PostInfo>();
@@ -274,6 +274,7 @@ public class MapsActivity extends FragmentActivity
         }
     }
 
+    // Checks if the given string (converted to a date) is within time bounds as set by the slider
     private boolean insideTimeRange(String input){
         Date date = null;
         try {
@@ -285,6 +286,7 @@ public class MapsActivity extends FragmentActivity
         return time >= timeBounds[0] && time <= timeBounds[1];
     }
 
+    // Calculates the time difference between a given string and the system time
     private String getTimeAgo(String input){
         Date date = null;
         try {
@@ -324,6 +326,7 @@ public class MapsActivity extends FragmentActivity
         public void onProviderDisabled(String provider) {}
     };
 
+    // Draws the large circle which illustrates the area in which notes are viewable by the user
     private void drawViewableRadius(){
         if(viewableRadius!=null)
             viewableRadius.remove();
@@ -336,6 +339,7 @@ public class MapsActivity extends FragmentActivity
                     .strokeWidth(3));
     }
 
+    // Server call function which takes coordinate bounds and pulls all notes within these bounds from the server
     public void getMessages(double latmin, double latmax, double lngmin, double lngmax){
 
         // Start the call.
@@ -362,6 +366,7 @@ public class MapsActivity extends FragmentActivity
         uploader.execute(myCallSpec);
     }
 
+    // Function called by the post message button. Starts PostActivity and sends it the current location
     public void postMessage(View v){
         Intent intent = new Intent(MapsActivity.this, PostActivity.class);
         Context context = getApplicationContext();
@@ -371,13 +376,14 @@ public class MapsActivity extends FragmentActivity
         context.startActivity(intent);
     }
 
+    // Used for debugging purposes
     @Override
     public void onMapClick(LatLng latLng) {
         Log.i("POSITION", latLng.toString());
     }
 
+    // Adds a range slider to the MapsActivity.
     private void addRangeSlider() throws ParseException {
-        // create RangeSeekBar as Date range between 1950-12-01 and now
         Calendar calendar = Calendar.getInstance(); // this would default to now
         calendar.add(Calendar.DAY_OF_MONTH, -2);
         Date maxDate = new Date();
@@ -399,6 +405,8 @@ public class MapsActivity extends FragmentActivity
         layout.addView(seekBar);
     }
 
+    // Handles when a marker on the map is cliked. Shows the infoWindow containing the note text/photo and sets
+    // the PostInfo object's "opened" boolen to true so that it can be coloured differently
     @Override
     public boolean onMarkerClick(Marker marker) {
         marker.showInfoWindow();
@@ -424,7 +432,7 @@ public class MapsActivity extends FragmentActivity
         editor.commit();
     }
 
-
+    // An asynchronous request to get an image from the server
     private class ImageDownloader extends AsyncTask {
         private Bitmap bmp;
 
