@@ -82,25 +82,23 @@ public class MapsActivity extends FragmentActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        shouldchange = true;
 
         TextView tv = (TextView) findViewById(R.id.smallLoading);
         tv.setText("Acquiring Location...");
         format.setTimeZone(TimeZone.getTimeZone("GMT"));
 
+        // Get read markers from cache
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        readMarkers = settings.getStringSet(PREF_POSTS, new HashSet<String>());
+
+        // Set up location manager
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         criteria = new Criteria();
         lastLocation = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
 
         // Set up map variables
         setUpMapIfNeeded();
-        drawViewableRadius();
-        shouldchange = true;
-
-        // Animate camera to current location
-        if(lastLocation != null)
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
-
-        tv.setText("Retrieving Server Data...");
 
         // Add range slider to layout
         try {
@@ -108,10 +106,6 @@ public class MapsActivity extends FragmentActivity
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
-        // Get read markers from cache
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-        readMarkers = settings.getStringSet(PREF_POSTS, new HashSet<String>());
 
 
     }
@@ -132,6 +126,8 @@ public class MapsActivity extends FragmentActivity
             toast.show();
             // Set map
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
+            // Refresh
+            refresh();
         }
 
         if(lastLocation != null && intent.getStringExtra("result") == null)
@@ -187,13 +183,7 @@ public class MapsActivity extends FragmentActivity
         mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
             @Override
             public void onCameraChange(CameraPosition cameraPosition) {
-
-                if (shouldchange) {
-                    // Populates map
-                    refresh();
-                    shouldchange = false;
-                }
-                if (mMap.getCameraPosition().zoom < 16.5) {
+                if (lastLocation != null && mMap.getCameraPosition().zoom < 16.5) {
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float) 16.5));
                 }
             }
@@ -219,11 +209,10 @@ public class MapsActivity extends FragmentActivity
         double maxLat = bounds.northeast.latitude + deltalat;
         double minLong = bounds.southwest.longitude - deltalng;
         double maxLong = bounds.northeast.longitude + deltalng;
-        getMessages(minLat, maxLat,minLong,maxLong);
 
         drawViewableRadius();
 
-        updateMap();
+        getMessages(minLat, maxLat,minLong,maxLong);
     }
 
     public void updateMap(){
@@ -310,6 +299,18 @@ public class MapsActivity extends FragmentActivity
         @Override
         public void onLocationChanged(Location location) {
             lastLocation = location;
+            if(shouldchange) {
+                // Show that data is about to be retrieved
+                TextView tv = (TextView) findViewById(R.id.smallLoading);
+                tv.setText("Retrieving Server Data...");
+                shouldchange = false;
+
+                // Animate camera to current location
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)17.5));
+
+                // Refresh data
+                refresh();
+            }
             drawViewableRadius();
         }
 
@@ -326,12 +327,13 @@ public class MapsActivity extends FragmentActivity
     private void drawViewableRadius(){
         if(viewableRadius!=null)
             viewableRadius.remove();
-        viewableRadius = mMap.addCircle(new CircleOptions()
-                .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
-                .radius(VIEW_RADIUS)
-                .strokeColor(Color.parseColor("#FFA000"))
-                .fillColor(Color.argb(30, 255, 222, 0))
-                .strokeWidth(3));
+        if(lastLocation != null)
+            viewableRadius = mMap.addCircle(new CircleOptions()
+                    .center(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()))
+                    .radius(VIEW_RADIUS)
+                    .strokeColor(Color.parseColor("#FFA000"))
+                    .fillColor(Color.argb(30, 255, 222, 0))
+                    .strokeWidth(3));
     }
 
     public void getMessages(double latmin, double latmax, double lngmin, double lngmax){
@@ -470,10 +472,12 @@ public class MapsActivity extends FragmentActivity
 
                 updateMap();
 
+                // Animate camera to current location
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()), (float)18.5));
+
                 // Hide the splash screen and progress bar
                 RelativeLayout splashScreen = (RelativeLayout) findViewById(R.id.splash_screen);
                 splashScreen.setVisibility(View.INVISIBLE);
-
             }
         }
     }

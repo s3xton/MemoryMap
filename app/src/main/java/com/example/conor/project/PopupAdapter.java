@@ -48,14 +48,16 @@ public class PopupAdapter implements InfoWindowAdapter {
 
         ImageView iv = (ImageView) popup.findViewById(R.id.icon);
 
-        if(MapsActivity.markers.get(marker).type.equals("image")){
+        if(MapsActivity.markers.get(marker) != null &&
+                MapsActivity.markers.get(marker).type.equals("image")){
             iv.setImageResource(R.drawable.photo);
             iv.setVisibility(View.VISIBLE);
         } else {
             iv.setVisibility(View.GONE);
         }
 
-        if(MapsActivity.markers.get(marker).bitmap != null) {
+        if(MapsActivity.markers.get(marker) != null &&
+                MapsActivity.markers.get(marker).bitmap != null) {
             iv.setVisibility(View.VISIBLE);
             iv.setImageBitmap(MapsActivity.markers.get(marker).bitmap);
         }
